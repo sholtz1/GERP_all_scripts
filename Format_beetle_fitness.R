@@ -1,0 +1,86 @@
+library(caroline)
+library(tidyverse)
+
+
+## Load in fitness data
+beetle_growth_census <- read_csv("F2_census.csv")
+
+## Since all beetles aren't counted final population needs to be calculated by weight. 
+mean_beetle_weight <- mean(beetle_growth_census$weight_50, na.rm = TRUE)/50
+
+
+##pipeline to get the fitness from the weights, Change to use weights when we actually have them
+beetle_growth_census <- beetle_growth_census %>%
+  mutate(weight_count = total_weight/mean_beetle_weight) %>%
+  mutate(weight_count = round(weight_count))
+
+## Need to use the actual counts when we have them, if not replace with estimates based on weight.
+beetle_growth_census$Count <- ifelse((is.na(beetle_growth_census$Count)), beetle_growth_census$weight_count,beetle_growth_census$Count )
+
+beetle_growth_census <-beetle_growth_census %>%
+  mutate(fitness = Count/Density) %>%
+  filter(!is.na(fitness))
+
+## get fitness for each landscape and location
+beetle_fitness <- beetle_growth_census %>%
+  group_by(Landscape, Location, Treatment) %>%
+  summarize(Fitness = mean(fitness))
+
+## WE need to combine the means for the shuffled edge and core since these 
+##Should be biologically equivalent 
+
+#make row to put mean into
+beetle_fitness$Shuff_mean <- rep(NA, length(beetle_fitness$Landscape))
+
+#Calculate the means for every pair of fitness datapoints in a new column
+for (i in 1:length(beetle_fitness$Landscape)) {
+  means <- mean(c(beetle_fitness$Fitness[i], beetle_fitness$Fitness[i+1]))
+  beetle_fitness$Shuff_mean[i] <- means
+  
+}
+
+## Make the shuffeled mean the mean of the two fitnesses in the same landscape.
+for (i in 1:length(beetle_fitness$Landscape)) {
+ifelse(
+  beetle_fitness[i, "Landscape"] == beetle_fitness[i+1, "Landscape"], 
+  beetle_fitness[i+1, "Shuff_mean"] <- beetle_fitness[i, "Shuff_mean"], print("")
+)
+}
+
+##Use the shuffeled mean wehen the treatment is shuffeled.
+##Keep the core and edge fitness data fro the structured treatment. 
+beetle_fitness <- beetle_fitness %>%
+  mutate(Fitness = case_when(Treatment == "C" ~ Shuff_mean,
+         TRUE ~ Fitness)) 
+
+## Turn  the location column to NA for shuffele treanment since this doesnt matter
+beetle_fitness <- beetle_fitness %>%
+  mutate(Location = case_when(Treatment == "C" ~ "NA",
+                               TRUE ~ Location))
+
+
+## Only keep 1 row per landscape for the shuffeled treatment since this is only 1 datapoint
+beetle_fitness <- distinct(beetle_fitness)
+
+## keep only the necessary columns
+beetle_fitness <- beetle_fitness %>%
+  select(1:4)
+
+
+##Load library for start compare means after this is loaded the above functions wont
+##work due to the fact grouping is somehow masked
+library(ggpubr)
+
+##Core vs edge fitness
+
+## Lets visualize
+beetle_fitness %>%
+  filter(Treatment == "C") %>%
+  ggplot(aes(x=Location, y= Fitness )) +
+  geom_boxplot() +
+  theme_classic() +
+  stat_compare_means(label.x = 1.5, label.y = 8)+
+  stat_compare_means(method = "t.test",label.x = 2, label.y = 8 )
+
+
+write.delim(beetle_fitness, "Beetle_fitness_filtered")
