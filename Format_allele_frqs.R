@@ -64,11 +64,11 @@ Allele_frequencies <- Allele_frequencies %>%
 ##Landscape
 
 ##Test subset for easy computation
-FRQ_subset <- head(Allele_frequencies, 100000)
-unique(Allele_frequencies$del)
+##FRQ_subset <- head(Allele_frequencies, 100000)
+
 
 ##create a new dataframe with the total number of each base pair for each landscape/location 
-FRQ_test <- FRQ_subset %>%
+FRQ_test <- Allele_frequencies %>%
   group_by(Chromosome, Location, Landscape) %>%
   summarize(A = sum(A), `T` = sum(`T`), G = sum(G), 
             C = sum(C), del = sum(del))
@@ -104,17 +104,31 @@ for (i in 1:nrow(FRQ_test)) {
   FRQ_test$New[i] <- names(Base_only)[which(Base_only[i,] == FRQ_test$Minor[i])]
    }
 
+## Take out colums that will be duplicates when joining. 
+FRQ_test <- FRQ_test %>%
+  select(1:3, 10)
+
+## Join to add the minor allele frequency identifier to each landscape/location
+Allele_frequencies <- left_join(Allele_frequencies, FRQ_test, by = c("Chromosome", "Location", "Landscape"))
 
 
 
+for (i in 1:nrow(Allele_frequencies)) {
+  Allele_frequencies_test$alternate[i] <- Allele_frequencies_test[i, which(names(Allele_frequencies_test) == Allele_frequencies_test$New[1])]
 
+  
+}
 
 
 ##By dividing the number of minor neucleotides by the total number present at that location we get the allele frequency of the minor allele.
 ###mutate new column of frequencies.
 ##this value should be able to be over .5
+##we will also probably need to change any vaues of 1 we get from this division to 0. 
+##these are going to be locations where a base pair was not found in one of the generations
+##but was found in the same landscape in another generation. 
 Allele_frequencies <- Allele_frequencies %>%
   mutate(FRQ = alternate/primary)
+
 
 
 
@@ -148,7 +162,5 @@ Allele_frequencies$Change_stationary <- abs(Allele_frequencies$Change_stationary
 Allele_frequencies$Change_core <- abs(Allele_frequencies$Change_core)
 Allele_frequencies$Change_edge <- abs(Allele_frequencies$Change_edge)
 
-##write.delim(Allele_frequencies, "Filtered_FRQs.delim")
+write.delim(Allele_frequencies, "Filtered_FRQs.delim")
 #########
-
-Allele_frequencies
