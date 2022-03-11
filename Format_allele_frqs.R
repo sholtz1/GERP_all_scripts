@@ -4,7 +4,7 @@ library(tidyverse)
 
 
 ##Load data
-Allele_frequencies <- read.table("Allele_frequencies.delim", header = TRUE, sep = " ")
+Allele_frequencies <- read.table("Allele_frq_subset_Topher", header = TRUE, sep = " ")
 ## right now we arent keeping the minor allele constant between generations. 
 ## ID minor allele in gen 0 and the be sure to keep that allele as the minor allele for the other generations. 
 
@@ -47,18 +47,56 @@ Allele_frequencies$alternate <- as.numeric(Allele_frequencies$alternate)
 ##Remove columns that only have 1 allele present.
 ##Are we removing cases when alleles were fixed in one generation but polymorphic in another. 
 
+## This code might need to go after IDing the minor allele in case a new allele 
+##is completely fixed
+
 ##This makes a dataframe of every location that is fixed within a landscape
 ## We want to remove these from the analysis since fixed sites dont tell us anything
 One_allele <- Allele_frequencies %>%
   group_by(Chromosome, Location, Landscape) %>%
   summarize(Allele_diff = sum(primary - alternate)) %>%
   filter(Allele_diff == 0)
-  
-## filter our data removing sites identified above use paste to identify each site uniquely
+
+## Add code to make a DF of locations that are fixed at with two different bases
+
+##Start with only alleles that are fixed somewhere
+Fixed_only <- Allele_frequencies %>%
+  filter(primary == alternate)
+
+## Next we need to get the BP of each allele into a new column for each landscape
+#and generation
+
+## Make new row
+Fixed_only$Fixed <- rep(NA, nrow(Fixed_only))
+
+## Create DF so we only look at BP columns
+Fixed_only_bases <- Fixed_only %>%
+  ungroup() %>%
+  select(8:13)
+
+
+## Get the allele BP into a new column for all fixed sites
+for (i in 1:nrow(Fixed_only)) {
+  Fixed_only$Fixed[i] <- names(Fixed_only_bases)[which(Fixed_only_bases[i,] == Fixed_only$alternate[i])]
+}
+
+
+## This code finds locations and landscapes where two different alleles are fixed.
+Fixed_only_sum <- Fixed_only %>%
+  group_by(Chromosome, Location, Landscape) %>%
+  summarise(diff_BP = length(unique(Fixed))) %>%
+  filter(diff_BP > 1)
+
+
+## filter our data removing sites identified above use paste to identify 
+#each site uniquely but don't remove sites with diff alleles fixed.
+
 Allele_frequencies <- Allele_frequencies %>%
   filter(!(paste(Chromosome, Location, Landscape) %in% 
-           paste(One_allele$Chromosome,One_allele$Location,One_allele$Landscape)))
-
+             paste(One_allele$Chromosome,One_allele$Location,One_allele$Landscape)) |
+           (paste(Chromosome, Location, Landscape) %in% 
+              paste(Fixed_only_sum$Chromosome,Fixed_only_sum$Location,Fixed_only_sum$Landscape))
+         )
 
 ## We need to get the alternate allele neucleotide to keep it constant for each
 ##Landscape
@@ -114,7 +152,7 @@ Allele_frequencies <- left_join(Allele_frequencies, FRQ_test, by = c("Chromosome
 
 
 for (i in 1:nrow(Allele_frequencies)) {
-  Allele_frequencies_test$alternate[i] <- Allele_frequencies_test[i, which(names(Allele_frequencies_test) == Allele_frequencies_test$New[1])]
+  Allele_frequencies$alternate[i] <- Allele_frequencies[i, which(names(Allele_frequencies) == Allele_frequencies$New[i])]
 
   
 }
@@ -132,14 +170,14 @@ Allele_frequencies <- Allele_frequencies %>%
 
 
 
-
+table(Allele_frequencies$FRQ)
 
 
 
 
 ##Remove unnecessary columns for analysis
 Allele_frequencies <- Allele_frequencies %>%
-  select(1,2, 3, 4,5 , 6,  17)
+  select(1,2, 3, 4,5 , 6,  FRQ)
 
 
 
