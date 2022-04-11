@@ -50,12 +50,12 @@ ifelse(
 ##Use the shuffeled mean wehen the treatment is shuffeled.
 ##Keep the core and edge fitness data fro the structured treatment. 
 beetle_fitness <- beetle_fitness %>%
-  mutate(Fitness = case_when(Treatment == "C" ~ Shuff_mean,
+  mutate(Fitness = case_when(Treatment == "S" ~ Shuff_mean,
          TRUE ~ Fitness)) 
 
 ## Turn  the location column to NA for shuffele treanment since this doesnt matter
 beetle_fitness <- beetle_fitness %>%
-  mutate(Location = case_when(Treatment == "C" ~ "NA",
+  mutate(Location = case_when(Treatment == "S" ~ "NA",
                                TRUE ~ Location))
 
 
