@@ -13,7 +13,7 @@ Base_pairs <-Allele_frequencies %>%
   select(8:13)
 
 ##This gets the total number or base pairs present at a specific location.
-Allele_frequencies$primary <- rowSums(Base_pairs)
+Allele_frequencies$total <- rowSums(Base_pairs)
 
 ##makes a colum to tell how many alleles are present for that patch
 Allele_frequencies$count <- apply(Base_pairs, 1, function(x) length(which(x=="0")))
@@ -41,7 +41,7 @@ Allele_frequencies <- Allele_frequencies %>%
 
 ##Make numberic and
 
-Allele_frequencies$primary <- as.numeric(Allele_frequencies$primary)
+Allele_frequencies$total <- as.numeric(Allele_frequencies$total)
 Allele_frequencies$alternate <- as.numeric(Allele_frequencies$alternate)
 
 ##Remove columns that only have 1 allele present.
@@ -54,14 +54,14 @@ Allele_frequencies$alternate <- as.numeric(Allele_frequencies$alternate)
 ## We want to remove these from the analysis since fixed sites dont tell us anything
 One_allele <- Allele_frequencies %>%
   group_by(Chromosome, Location, Landscape) %>%
-  summarize(Allele_diff = sum(primary - alternate)) %>%
+  summarize(Allele_diff = sum(total - alternate)) %>%
   filter(Allele_diff == 0)
 
 ## Add code to make a DF of locations that are fixed at with two different bases
 
 ##Start with only alleles that are fixed somewhere
 Fixed_only <- Allele_frequencies %>%
-  filter(primary == alternate)
+  filter(total == alternate)
 
 ## Next we need to get the BP of each allele into a new column for each landscape
 #and generation
@@ -104,12 +104,26 @@ Allele_frequencies <- Allele_frequencies %>%
 ##Test subset for easy computation
 ##FRQ_subset <- head(Allele_frequencies, 100000)
 
-
+########This summing step does not work we need to just take the first column
+######### and calculate the minor allele frequency from that. 
 ##create a new dataframe with the total number of each base pair for each landscape/location 
+
+##Frequencies to be < .5 but this might no be a problem as the change can still be higher
+##Could we use a combination of the two methods below? Of would it help
+##to use the major allele frequency that way it can be identified even when the 
+#minor is 0 this might work better
+
+##Instead of summing we summarize by the first row for each unique location and landscape
+
 FRQ_test <- Allele_frequencies %>%
-  group_by(Chromosome, Location, Landscape) %>%
-  summarize(A = sum(A), `T` = sum(`T`), G = sum(G), 
-            C = sum(C), del = sum(del))
+  mutate(combo = paste(Chromosome, Location, Landscape)) %>%
+distinct(combo, .keep_all= TRUE) %>%
+  select(-combo)
+
+#FRQ_test <- Allele_frequencies %>%
+#  group_by(Chromosome, Location, Landscape) %>%
+#  summarize(A = sum(A), `T` = sum(`T`), G = sum(G), 
+#            C = sum(C), del = sum(del))
 
 ##Turn 0 to NA so we can use the minumun function
 FRQ_test[FRQ_test == 0] <- NA
@@ -123,28 +137,80 @@ FRQ_test$G <- as.numeric(FRQ_test$G)
 FRQ_test$del <- as.numeric(FRQ_test$del)
 
 
+## Make max function with rm.na
+f2 <- function(x){
+  max(x, na.rm = TRUE)
+}
 
-##Make a new column with the minumium number of alleles for that row
-FRQ_test$Minor <-apply(FRQ_test[,4:8],1,FUN=f1)
-FRQ_test$Minor <-as.numeric((FRQ_test$Minor))
+##Make a new column with the maximum number of alleles for that row
+FRQ_test$Major <-apply(FRQ_test[,8:13],1,FUN=f2)
+FRQ_test$Major <-as.numeric((FRQ_test$Major))
+
+## Subtract major from total to get the minor allele frequency
+FRQ_test <- FRQ_test %>%
+  mutate(Minor = total - Major)
 
 ##Creat a new DF that only has nculotide information.
 Base_only <- FRQ_test %>%
+  ungroup() %>%
+  select(8:13)
+
+Base_only[is.na(Base_only)] <- 0
+
+## Create a new row to put Minor allele BP letter into
+FRQ_test$New <- rep(NA, nrow(FRQ_test))
+
+
+## Get the minor allele BP into a new column
+
+for (i in 1:nrow(FRQ_test)) {
+  FRQ_test$New[i] <- names(Base_only)[which(Base_only[i,] == FRQ_test$Minor[i])]
+}
+
+## This new way can result in the minor allele frequency being 0
+## This will cause the loop to find multiple instances for some rows
+## Try to combine the old methods to replace the base found for  rows with 0's
+FRQ_test_supplement <- Allele_frequencies %>%
+  group_by(Chromosome, Location, Landscape) %>%
+  summarize(A = sum(A), `T` = sum(`T`), G = sum(G), 
+            C = sum(C), del = sum(del))
+
+
+##Turn 0 to NA so we can use the minumun function
+FRQ_test_supplement[FRQ_test_supplement == 0] <- NA
+## Get the minor allele frequency for the supplement dataset
+FRQ_test_supplement$Minor <-apply(FRQ_test_supplement[,4:8],1,FUN=f1)
+FRQ_test_supplement$Minor <-as.numeric((FRQ_test_supplement$Minor))
+
+##Creat teh base only DF for the supplement
+Base_only_supp <- FRQ_test_supplement %>%
   ungroup() %>%
   select(4:8)
 
 
 ## Create a new row to put Minor allele BP letter into
-FRQ_test$New <- rep(NA, nrow(FRQ_test))
+FRQ_test_supplement$New <- rep(NA, nrow(FRQ_test_supplement))
+
 
 ## Get the minor allele BP into a new column
-for (i in 1:nrow(FRQ_test)) {
-  FRQ_test$New[i] <- names(Base_only)[which(Base_only[i,] == FRQ_test$Minor[i])]
-   }
+
+for (i in 1:nrow(FRQ_test_supplement)) {
+  FRQ_test_supplement$New[i] <- names(Base_only_supp)[which(Base_only_supp[i,] == FRQ_test_supplement$Minor[i])]
+}
+
+## Add the supplement base pairs column to the FRQ_test DF
+FRQ_test$supp_BP <- FRQ_test_supplement$New
+
+##Use the supplement data for when the minor allele frequency is 0
+
+FRQ_test <- FRQ_test %>%
+  mutate(New = case_when( Minor == 0 ~ as.character(supp_BP),
+                          TRUE ~ as.character(New)))
+
 
 ## Take out colums that will be duplicates when joining. 
 FRQ_test <- FRQ_test %>%
-  select(1:3, 10)
+  select(Chromosome, Location, Landscape, New)
 
 ## Join to add the minor allele frequency identifier to each landscape/location
 Allele_frequencies <- left_join(Allele_frequencies, FRQ_test, by = c("Chromosome", "Location", "Landscape"))
@@ -165,7 +231,7 @@ for (i in 1:nrow(Allele_frequencies)) {
 ##these are going to be locations where a base pair was not found in one of the generations
 ##but was found in the same landscape in another generation. 
 Allele_frequencies <- Allele_frequencies %>%
-  mutate(FRQ = alternate/primary)
+  mutate(FRQ = alternate/total)
 
 
 
@@ -200,5 +266,5 @@ Allele_frequencies$Change_stationary <- abs(Allele_frequencies$Change_stationary
 Allele_frequencies$Change_core <- abs(Allele_frequencies$Change_core)
 Allele_frequencies$Change_edge <- abs(Allele_frequencies$Change_edge)
 
-write.delim(Allele_frequencies, "Filtered_FRQs.delim")
+##write.delim(Allele_frequencies, "Filtered_FRQs.delim")
 #########
