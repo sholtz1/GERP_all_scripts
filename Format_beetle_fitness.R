@@ -4,6 +4,8 @@ library(tidyverse)
 
 ## Load in fitness data
 beetle_growth_census <- read_csv("F2_census.csv")
+beetle_growth_census <- beetle_growth_census %>%
+  select(3:9)
 
 ## Since all beetles aren't counted final population needs to be calculated by weight. 
 mean_beetle_weight <- mean(beetle_growth_census$weight_50, na.rm = TRUE)/50

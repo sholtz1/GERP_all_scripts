@@ -1,5 +1,7 @@
 #### Lets look and see if RS score is a ssociated with less allele frequency chagne.
 GERPvsallele <-read.table("Full_filtered_data.delim", header = TRUE, sep = " ")
+GERPvsallele <- GERPvsallele %>%
+  select(-Ref)
 
 
 useful_sites <- GERPvsallele %>%
@@ -91,7 +93,7 @@ startin_frqs %>%
 
 
 ## Join with fitness
-fit_allele_test <- right_join(beetle_fitness , Allele_frequencies)
+fit_allele_test <- right_join(beetle_fitness , Allele_frequencies_test)
 
 fit_allele_test <- fit_allele_test %>%
   group_by(Landscape, Treatment) %>%
