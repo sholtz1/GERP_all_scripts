@@ -25,4 +25,9 @@ EstModel <- lme(fixed = Frequency_change ~ RS,
 
 EstModel
 
-mod.corExp <- update(EstModel, correlation = nlme::corExp(form = ~ RS + Location, nugget=T))
+EstModel_no_cor <- lme(fixed = Frequency_change ~ RS, 
+                       data = Test_LME_data,
+                       random = ~1|Chromosome,
+                       method = "ML")
+
+anova(EstModel_no_cor, EstModel)
