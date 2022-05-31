@@ -17,6 +17,7 @@ SigInts
 
 Test_LME_data <- read.table("Full_filtered_data.delim", header = TRUE)
 ?lme
+## Compare ML vs REML and see if you get similar results. 
 EstModel <- lme(fixed = Frequency_change ~ RS, 
                 data = Test_LME_data,
                 random = ~1|Chromosome/Location,  

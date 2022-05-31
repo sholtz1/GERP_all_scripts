@@ -220,8 +220,7 @@ Allele_frequencies <- Allele_frequencies %>%
 ## Need to writ a DF to keep individual landscape/generation data before pivoting 
 ## Since that put the full landscape into one row
 
-##write.delim(Allele_frequencies, "Filtered_FRQs_allgens.delim")
-#########
+##write.delim(Allele_frequencies, "Filtered_FRQs_individual.delim")
 
 ##Remove data that prevents pivioting
 Allele_frequencies <- Allele_frequencies %>%

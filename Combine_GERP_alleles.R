@@ -31,7 +31,8 @@ Gerp <- rbind(GERP_7416, GERP_7417, GERP_7418, GERP_7419, GERP_7420, GERP_7421,
               GERP_7422, GERP_7423, GERP_7424, GERP_7425)
 
 # load in the data
-AlleleFreqs <- read.tab("/project/beetlegenes/sholtz1/beetle_test/Filtered_FRQs.delim", header = TRUE)
+#AlleleFreqs <- read.tab("/project/beetlegenes/sholtz1/beetle_test/Filtered_FRQs.delim", header = TRUE)
+AlleleFreqs <- Allele_frequencies
 
 Chromosomes <- c("NC_007416.3",    "NC_007417.3" ,   "NC_007418.3",    "NC_007419.2",
                  "NC_007420.3",   "NC_007421.3",    "NC_007422.5",    "NC_007423.3",
@@ -58,7 +59,8 @@ for(i in 1:nrow(UniqueLocations)){
   # Find the row in the GERP data that corresponds to this chromosome and location combination
   GERP_row <- which(Gerp$Chromosome == UniqueLocations$Chromosome[i] &
                       Gerp$start <= UniqueLocations$Location[i] &
-                      Gerp$end _007416.3_rm.rates.bed
+                      Gerp$end >= UniqueLocations$Location[i])
+
                     # It seems like many of the allele locations don't have a corresponding GERP score,
                     #   so double check that each one has an entry in the GERP data
                     if(length(GERP_row) == 1){
@@ -134,7 +136,7 @@ AlleleFreqs <- AlleleFreqs %>%
   select(-not_important)
 
 
-write_delim(AlleleFreqs, "/project/beetlegenes/sholtz1/GERP/GERP_Allele_combined.delim")
+#write_delim(AlleleFreqs, "/project/beetlegenes/sholtz1/GERP/GERP_Allele_combined.delim")
 # end the timer. On my system, this took 0.3 seconds with the abbridged data you sent
 proc.time() - start_time
 
