@@ -1,9 +1,19 @@
+# TWL: You need to add the necessary libraries for this code here. At least tidyverse is clearly
+# necessary
+
+# TWL: Also, after looking close through this script, it looks like it is mostly
+# for EDA, rather than any final analyses or figures. That's fine, but you should
+# remove it before we publish the code with the manuscript so the published code
+# is as clean and easy to use as possible.
+
+
 #### Lets look and see if RS score is a ssociated with less allele frequency chagne.
 GERPvsallele <-read.table("Full_filtered_data.delim", header = TRUE, sep = " ")
 GERPvsallele <- GERPvsallele %>%
   select(-Ref)
 
-
+# TWL: What is the point of this step? It looks like you use the oringal object
+# below rather than the useful_sites
 useful_sites <- GERPvsallele %>%
   filter(RS > 2) 
 

@@ -3,7 +3,17 @@ detach("package:ggpubr", unload=TRUE)
 library(tidyverse)
 
 
+# TWL: I added several comments throughout, but an overall comment for this script is that
+# it still needs to be cleaned up. There are multiple unecessary comments, old parts of code,
+# or mismatches (referring to a minor allele in the comment when instead the code is using
+# the major allele). The goal for the code review was to have the code close to the version
+# that would be published with the paper and this script needs a good amount of revision
+# before it's at that point.
+
+
 ##Load data
+# TWL: Be sure this is updated with the actual file (not the subset for me) in the
+# final version.
 Allele_frequencies <- read.table("Allele_frq_subset_Topher", header = TRUE, sep = " ")
 ## right now we arent keeping the minor allele constant between generations. 
 ## ID minor allele in gen 0 and the be sure to keep that allele as the minor allele for the other generations. 
@@ -16,6 +26,14 @@ Base_pairs <-Allele_frequencies %>%
 Allele_frequencies$total <- rowSums(Base_pairs)
 
 ##makes a colum to tell how many alleles are present for that patch
+# TWL: This comment is misleading because the result isn't "how many alleles are present"
+# Instead, it's how many alleles are not present since you're checking for the
+# frequencies being 0. I'd suggest changing this to be x != 0 so it matches the comment
+# which is more intuitive. Then you'll need to update the filter step below, but it
+# will again be more intuitive because it will be filtering for counts to be either 1 or 2.
+# Also, I notice the 0 here is a character. I'd suggest changing the data type before
+# doing any subsequent calculations to avoid possible issues. That will negate the
+# need for the as.numeric steps later on in the code too.
 Allele_frequencies$count <- apply(Base_pairs, 1, function(x) length(which(x=="0")))
 
 
@@ -35,12 +53,13 @@ Allele_frequencies$alternate <- apply(X=Base_pairs, MARGIN=1, FUN=f1)
 rm("Base_pairs")
 
 ##Remove sites with more than two alleles
+# TWL: With my earlier suggestion, this will be count %in% c(1,2) or count <= 2
 Allele_frequencies <- Allele_frequencies %>%
   filter(count %in% c(4, 5))
 
 
 ##Make numberic and
-
+# TWL: If you follow my earlier suggestion, you won't need these steps.
 Allele_frequencies$total <- as.numeric(Allele_frequencies$total)
 Allele_frequencies$alternate <- as.numeric(Allele_frequencies$alternate)
 
@@ -98,6 +117,13 @@ Allele_frequencies <- Allele_frequencies %>%
               paste(Fixed_only_sum$Chromosome,Fixed_only_sum$Location,Fixed_only_sum$Landscape))
          )
 
+# TWL: The above process works, but it seems a bit cumbersome. Couldn't it be simplified
+# by only creating the Fixed_only data frame and then in the last step filtering for
+# diff_BP == 1? Then, you could just filter above for !(paste(Chromosome, Location, Landscape) %in% paste(Fixed_only_sum$Chromosome, ...))
+# and it would accomplish the same thing in less steps, right?
+
+
+
 ## We need to get the alternate allele neucleotide to keep it constant for each
 ##Landscape
 
@@ -141,6 +167,10 @@ f2 <- function(x){
 
 ##Make a new column with the maximum number of alleles for that row
 FRQ_test$Major <-apply(FRQ_test[,3:7],1,FUN=f2)
+
+# TWL: Why is the below step necessary? the max function should by default
+# return numeric values and if you're getting something else, it would be worth
+# it to understand why as it could relate to a different issue.
 FRQ_test$Major <-as.numeric((FRQ_test$Major))
 
 ## Subtract major from total to get the minor allele frequency
@@ -243,6 +273,10 @@ Allele_frequencies <- Allele_frequencies %>%
 
 ##Change so that negative changes are a reduction in the major allele
 ##Positive change represents an increase in the major allele
+
+# TWL: An easier way to achieve this directionality would be to just reverse the 
+# order of the subtraction in the mutate steps above. Then you wouldn't need the code
+# below.
 
 Allele_frequencies$Change_stationary <- -1*(Allele_frequencies$Change_stationary)
 Allele_frequencies$Change_core <- -1*(Allele_frequencies$Change_core)
