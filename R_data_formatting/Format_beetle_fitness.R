@@ -7,18 +7,17 @@ beetle_growth_census <- read_csv("F2_census.csv")
 beetle_growth_census <- beetle_growth_census %>%
   select(3:9)
 
-## Since all beetles aren't counted final population needs to be calculated by weight. 
-mean_beetle_weight <- mean(beetle_growth_census$weight_50, na.rm = TRUE)/50
 
 
 ##pipeline to get the fitness from the weights, Change to use weights when we actually have them
 beetle_growth_census <- beetle_growth_census %>%
-  mutate(weight_count = total_weight/mean_beetle_weight) %>%
-  mutate(weight_count = round(weight_count))
+  mutate(weight_count = total_weight/(weight_50/50))
 
 ## Need to use the actual counts when we have them, if not replace with estimates based on weight.
 beetle_growth_census$Count <- ifelse((is.na(beetle_growth_census$Count)), beetle_growth_census$weight_count,beetle_growth_census$Count )
 
+
+### Get fitness for each column
 beetle_growth_census <-beetle_growth_census %>%
   mutate(fitness = Count/Density) %>%
   filter(!is.na(fitness))
@@ -71,4 +70,4 @@ beetle_fitness <- beetle_fitness %>%
 
 ##Write final fitness file to use in final analyses
 
-write.delim(beetle_fitness, "Beetle_fitness_filtered")
+write.delim(beetle_fitness, "Beetle_fitness_filtered.delim")
