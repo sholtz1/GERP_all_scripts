@@ -141,6 +141,7 @@ Grantham_alleles <- Grantham_alleles %>%
 ##################################################################################
 
 ## create a genetic load from allele frequencies combined with grantham scores. 
+##Summing assumes additive effect of all the deleterious change
 Grantham_loads <- Grantham_alleles %>%
   group_by(Landscape) %>%
   summarise(Start_load = (sum(Gran_Start, na.rm = TRUE)),
