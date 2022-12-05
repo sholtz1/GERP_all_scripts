@@ -32,8 +32,15 @@ Gerp <- rbind(GERP_7416, GERP_7417, GERP_7418, GERP_7419, GERP_7420, GERP_7421,
 
 # load in the data
 #AlleleFreqs <- read.tab("/project/beetlegenes/sholtz1/beetle_test/Filtered_FRQs.delim", header = TRUE)
+
+# TWL: What is happening here? Where did Allele_frequencies come from?
 AlleleFreqs <- Allele_frequencies
 
+# TWL: Just like with the column names in the R_seperate_alleles.R script, I'm sure
+# there's a more robust way to do this that is quicker than typing them all out and 
+# is less error prone. I'm not working through all these on Teton, so I can't check
+# the orginal input files, but presumably, these are taken from the GERP results?
+# Like, are these the chromosomes with regions identified by GERP?
 Chromosomes <- c("NC_007416.3",    "NC_007417.3" ,   "NC_007418.3",    "NC_007419.2",
                  "NC_007420.3",   "NC_007421.3",    "NC_007422.5",    "NC_007423.3",
                  "NC_007424.3",    "NC_007425.3")
@@ -92,6 +99,10 @@ NC_007425.3_rm.rates.bed <-read.delim("/project/beetlegenes/sholtz1/GERP/analyse
 
 #Change column names so they match for joining
 
+# TWL: Why are you reading these in twice in a row? Looks like you could get rid of 
+# all the read.delim calls below. You also repeat the process of changing the column
+# names of NC_007416.3_rm.rates.bed below. This section of the code needs to be cleaned
+# up.
 colnames(NC_007416.3_rm.rates.bed) <- c("Chromosome","not_important", "Location", "Max_RS", "RS")
 NC_007417.3_rm.rates.bed <-read.delim("/project/beetlegenes/sholtz1/GERP/analyses/gerp/NC_007417.3_rm.rates.bed", header = FALSE)
 NC_007418.3_rm.rates.bed <-read.delim("/project/beetlegenes/sholtz1/GERP/analyses/gerp/NC_007418.3_rm.rates.bed", header = FALSE)
@@ -140,4 +151,6 @@ AlleleFreqs <- AlleleFreqs %>%
 # end the timer. On my system, this took 0.3 seconds with the abbridged data you sent
 proc.time() - start_time
 
-
+# TWL: Using the proc.time() command is useful when first developing the code, but
+# you don't need it in the final version. It's just for when you are testing out
+# the code and looking for potentially faster options.

@@ -33,6 +33,11 @@ test_single_pop <- test_single_pop %>%
 
 ## This is the method from Valk et al 2019 making the GERP score relative to
 ##The total frequency. What exactly is this doing and why?
+## TWL: We should talk about this more. That paper is actually a pre-print and has
+# been updated (though still not published). The update makes me think we don't actually
+# want to use this method. There are a few other papers we should take a closer look at:
+# https://www.pnas.org/doi/epdf/10.1073/pnas.1510805112
+# https://www.nature.com/articles/s41467-020-14803-1#Sec9
 pop_genetic_loads <- test_single_pop %>%
   group_by(Landscape) %>%
   summarise(Start_load = (sum(Start, na.rm = TRUE)/ sum(`X0_NA`, na.rm = TRUE)),

@@ -8,10 +8,20 @@ beetle_growth_census <- beetle_growth_census %>%
   select(3:9)
 
 ## Since all beetles aren't counted final population needs to be calculated by weight. 
+# TWL: Actually, this isn't the best way to calculate this. We know there are size differences
+# among populations (particularly among edge and core populations), so this will not give you
+# accurate information if you try to average across all populations. You need to do this for
+# each row of the data frame to calculate the estimated beetle numbers from each patch. Let me
+# know if you have questions about this, but you need to redo the fitness calculations here because
+# the data you've gotten from this isn't correct. I'm sure it's pretty close, but it's not the
+# correct values.
 mean_beetle_weight <- mean(beetle_growth_census$weight_50, na.rm = TRUE)/50
 
 
 ##pipeline to get the fitness from the weights, Change to use weights when we actually have them
+# TWL: Also, we don't need to round the estimates here. The weight estimates are inherently estimates,
+# so we know they don't truly represent exact counts. If we use the estimates directly rather than
+# rounding them, it will keep a slightly more accurate estimate of fitness in turn.
 beetle_growth_census <- beetle_growth_census %>%
   mutate(weight_count = total_weight/mean_beetle_weight) %>%
   mutate(weight_count = round(weight_count))
@@ -35,6 +45,10 @@ beetle_fitness <- beetle_growth_census %>%
 beetle_fitness$Shuff_mean <- rep(NA, length(beetle_fitness$Landscape))
 
 #Calculate the means for every pair of fitness datapoints in a new column
+# TWL: This isn't going to work properly. But it looks like you already figured that
+# out based on the code below. Why is this still in the script? There are much easier
+# and more direct ways to do this calculation than how you currently have it structured.
+# Try to clean up this section of the code to be cleaner and more intuitive.
 for (i in 1:length(beetle_fitness$Landscape)) {
   means <- mean(c(beetle_fitness$Fitness[i], beetle_fitness$Fitness[i+1]))
   beetle_fitness$Shuff_mean[i] <- means
@@ -42,6 +56,8 @@ for (i in 1:length(beetle_fitness$Landscape)) {
 }
 
 ## Make the shuffeled mean the mean of the two fitnesses in the same landscape.
+# TWL: Rather than using an ifelse statement that prints nothing to the console, 
+# why not just use a traditional if statement?
 for (i in 1:length(beetle_fitness$Landscape)) {
 ifelse(
   beetle_fitness[i, "Landscape"] == beetle_fitness[i+1, "Landscape"], 
