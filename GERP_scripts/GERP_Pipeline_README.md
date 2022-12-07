@@ -11,16 +11,14 @@ output:
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 ```
 
-# Conservation analysis pipeline
 
 ### Key steps
 
 1. Align query genomes to maize B73 v5 reference genome.
 2. Use GERP to identify conserved elements.
-3. Statistical analysis to detect enrichment/depletion of structural variants in conserved elements.
 
 
-### Software used for these analyses *(add versions)*
+### Software used for these analyses 
 
 a) Last (lastdb, last-train, lastal, maf-convert, last-split, maf-swap, last-postmask) v 2.31.1
 b) Kent-utils (axtChain, chainMergeSort, faSize, chainPreNet, chainNet, faToTwoBit, netToAxt, axtToMaf)
@@ -47,36 +45,19 @@ mkdir -p ${project_path}/data/chromsize/
 mkdir -p ${project_path}/data/annotations/
 ```
 
-Download the following files and add them to the following directories. All except query files available on Cyverse: \
-`${project_path}/data/sequences/ref/` \
-B73 v5 reference sequence: Zm-B73-REFERENCE-NAM-5.0.fa \
-Repeat masked B73 v5 reference sequence: Zm-B73-REFERENCE-NAM-5.0_rm.fa \
+Download the following files and add them to the following directories.: \
+`${project_path}/data/sequences/ref/` \Tcas5.2\
+/Tcas5.2.gff
+
 `${project_path}/data/sequences/query/` \
-From Phytozome: \
-Acomosus: Acomosus_321_v3.softmasked.fa.gz \
-Osativa: Osativa_323_v7.0.softmasked.fa.gz \
-Taestivum: Taestivum_296_v2.softmasked.fa.gz \
-Bdistachyon: Bdistachyon_556_v3.0.softmasked.fa.gz \
-Sbicolor: Sbicolor_313_v3.0.softmasked.fa.gz \
-Othomaeum: Othomaeum_386_v1.0.fa.gz \
-Stuberosum: Stuberosum_448_v4.03.fa.gz \
-Vvinifera: Vvinifera_457_Genoscope.12X.fa.gz \
-From Ensembl: \
-Athaliana: Arabidopsis_thaliana.TAIR10.dna_sm.toplevel.fa.gz \
-We used four additional genomes which are currently unreleased. Chrysopogon serrulatus and Hyparrhenia diplandra (Song et al. 2020 preprint), and genomes for Coelorachis and Vossia.\
-`${project_path}/data/variants/` \
-NAM founders SVs in a bed file: NAM_founders_SVs.bed \
-NAM founders SNPs in a bed file: B73v5.NAM-illumina-snps-only_filtered.frq.bed \
-`${project_path}/data/chromsize/` \
-Size of all chromosomes in B73: Zm-B73-REFERENCE-NAM-5.0.size.bed \
-`${project_path}/data/annotations/` \
-B73 v5 genes: zea_maysb73_core_3_87_1.gff \
-Open chromatin from merging leaf and inflorescence data from Ricci et al. 2019: open_chromatin.bed \
-GFF3 of repeat masked bases in B73 v5: Zm-B73-REFERENCE-NAM-5.0-repeatmask.gff3.gz \
-Genetic map from Ogut et al. 2015 lifted over to AGPv5: ogut_fifthcM_map_agpv5.bed\
-
-Run all of the following scripts from within your `${project_path}`.\
-
+From NCBI: \
+Hycleus_cichorii_genomic.fna
+Pyrochoroa_serraticornis_genomic.fna
+Tenebrio_molitor_genomic.fna Tribolium_madens_genomic.fna
+tribolium_confusum_genomic.fna
+Dendroctonus_ponderosae_genomic.fna
+Anoplophora_glabripennis_genomic.fna
+Agrilus_planipennis_genomic.fna
 ## 1) Align genomes
 
 ### Step 1: Run lastdb.sh on the reference genome
@@ -87,7 +68,7 @@ bash ./scripts-alignment/lastdb.sh
 
 ```{bash}
 
-ref=./data/sequences/ref/Zm-B73-REFERENCE-NAM-5.0.fa
+ref=./data/sequences/ref/Tcas5.2.fna
 ref_name=$( basename $ref )
 db_prefix=./analyses/last/lastdb/${ref_name}-MAM4
 
@@ -117,7 +98,7 @@ last-train -P0 --revsym --matsym --gapsym -E0.05 -C2 $db_prefix $query > $mat
 
 mkdir -p ./analyses/last/maf/
 
-maf=./analyses/last/maf/Zm-B73-REFERENCE-NAM-5.0_"$query_name".maf
+maf=./analyses/last/maf/Tcas5.2.fna_"$query_name".maf
 
 lastal -m50 -E0.05 -C2 -p $mat $db_prefix $query > $maf
 # m50 makes allowed multiplicity of initial hits 50, each match lengthened
@@ -262,7 +243,7 @@ bash replace_stars.sh
 
 ```{bash}
 
-ref_rm=./data/sequences/ref/Zm-B73-REFERENCE-NAM-5.0_rm.fa
+ref_rm=./data/sequences/ref/Tcas5.2.fna
 
 ref_rm_name=$( basename $ref_rm )
 
@@ -312,7 +293,8 @@ done
 
 ```{bash}
 project_path=
-tree="((Acomosus_321_v3,((Osativa_323_v7,(Taestivum_296_v2,Bdistachyon_556_v3)),((Vossia,(Zm-B73-REFERENCE-NAM-5,(Coelorachis,(Chrysopogon_serrulatus_FLYE2,(Hyparrhenia_diplandra_flye2,Sbicolor_454_v3))))),Othomaeum_386_v1))),(Solanum_tuberosum,(Vitis_vinifera,Arabidopsis_thaliana)));"
+tree=(((Hycleus_cichorii_genomic:0.422163,(Pyrochoroa_serraticornis_genomic:0.294459,(Tenebrio_molitor_genomic:0.26607,(Tribolium_madens_genomic:0.187907,tribolium_confusum_genomic:0.193476):0.103945):0.130855):0.0990494):0.102375,(Dendroctonus_ponderosae_genomic:0.548531,Anoplophora_glabripennis_genomic:0.381179):0.088164):0.287138,Agrilus_planipennis_genomic:0.287138);
+
 Rscript ./scripts-gerp/estimate_neutral_tree.R ${project_path}/data/sequences/ref/split/ ${project_path}/analyses/last/msa_fasta/ ${project_path}/data/annotations/${gff_name} $tree ${project_path}/analyses/tree/neutral_tree.txt
 
 ```
@@ -351,7 +333,7 @@ sink()
 
 ### Step 6: Run GERP
 
-Run for all 10 maize chromosomes (so chr1, chr2, etc.)
+Run for all 10 tribolium chromosomes (so chr1, chr2, etc.)
 ```{bash}
 bash ./scripts-gerp/run_gerp.sh chr
 ```
@@ -364,12 +346,12 @@ mkdir -p {project_path}/analyses/gerp/
 fasta=./analyses/last/msa_fasta/"$chr"_rm.fa
 
 
-ref_rm=./data/sequences/ref/Zm-B73-REFERENCE-NAM-5.0_rm.fa
+ref_rm=./data/sequences/ref/Tcas5.2.fna
 ref_rm_chr=./data/sequences/ref/split/"$chr".fa
 gerpcol={path/to/GERPplusplus/gerpcol}
 gerpelem={path/to/GERPplusplus/gerpelem}
 tree=./analyses/tree/neutral_tree.txt
-$gerpcol -f $rm_fasta -t $tree -v -e Zm-B73-REFERENCE-NAM-5 -j -a
+$gerpcol -f $rm_fasta -t $tree -v -e Tcas5.2.fna -j -a
 
 
 mkdir -p ./analyses/gerp/
