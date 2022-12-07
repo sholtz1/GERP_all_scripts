@@ -1,5 +1,5 @@
 ## Final data creation 
-
+library(tidyverse)
 ## read in all allele FRQ data with GERP scores and grantham scores
 Full_filtered_data <- read.table("Grantham_GERP_Full.delim", header = TRUE)
 
@@ -233,6 +233,26 @@ Grantham_loads <- Grantham_loads %>%
   pivot_longer(cols=c('Change_edge', 'Change_core'),
                names_to='treatment',
                values_to='Grantham_load') 
+##################grantham averages #############################################
+
+Grantham_averages <- Grantham_alleles %>%
+  group_by(Landscape) %>%
+  summarise(Start_load = (mean(Gran_Start, na.rm = TRUE)),
+            Change_edge = (mean(Gran_edge, na.rm = TRUE)),
+            Change_core = (mean(Gran_core, na.rm = TRUE)),
+            `NA` = (mean(Gran_end, na.rm = TRUE))) %>%
+  filter(Change_edge != 0) %>%
+  select(Landscape, Change_edge, Change_core)
+
+
+
+
+## change the names so it can be combined into the final summary. 
+
+Grantham_averages <- Grantham_averages %>%
+  pivot_longer(cols=c('Change_edge', 'Change_core'),
+               names_to='treatment',
+               values_to='Grantham_average') 
 
 
 
@@ -251,6 +271,21 @@ High_effect_alleles <- High_effect_alleles %>%
   pivot_longer(cols=c('Change_edge', 'Change_core'),
                names_to='treatment',
                values_to='High_effect_alleles') 
+############# Average high impact, low frq sites may not be imporant to fitness ###################
+High_effect_averages <- Full_filtered_data  %>%
+  filter(!is.na(Grantham)) %>%
+  filter(Grantham == "HIGH")
+
+High_effect_averages <- High_effect_averages %>%
+  group_by(Landscape) %>%
+  summarise(Change_edge = mean(`X8_E`, na.rm = TRUE), Change_core = mean(`X8_C`, na.rm = TRUE)) %>%
+  filter(Change_edge != 0)
+
+High_effect_averages <- High_effect_averages %>%
+  pivot_longer(cols=c('Change_edge', 'Change_core'),
+               names_to='treatment',
+               values_to='High_effect_averages') 
+
 
 
 ############# Join data #######################
@@ -278,6 +313,10 @@ Final_summary_2 <- left_join(Final_summary_2, Grantham_loads, by = c("Landscape"
 Final_summary_2 <- left_join(Final_summary_2, pop_genetic_loads_long_full, by = c("Landscape", "treatment"))
 
 Final_summary_2 <- left_join(Final_summary_2, High_effect_alleles, by = c("Landscape", "treatment"))
+
+Final_summary_2 <- left_join(Final_summary_2, High_effect_averages, by = c("Landscape", "treatment"))
+
+Final_summary_2 <- left_join(Final_summary_2, Grantham_averages, by = c("Landscape", "treatment"))
 
 write_delim(Final_summary_2 , "Final_summary.delim")
 

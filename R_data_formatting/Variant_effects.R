@@ -13,7 +13,7 @@ Variant_effects <- read.table("GxK1C4chiGUhHJZZ.txt", header = TRUE, sep = "\t")
 ## filter for rows with an amino acid changes, other information is likely 
 Variant_effects <- Variant_effects %>%
   filter(X..7 != "-") %>%
-  filter(intron_variant == "missense_variant" | intron_variant == "stop_lost" | intron_variant == "coding_sequence_variant")
+  filter(intron_variant == "missense_variant" | MODIFIER == "HIGH")
 
 ## split the amino acid columns into an original and variant amino acids.
 Variant_effects[c('initial', 'changed')] <- str_split_fixed(Variant_effects$X..7, '/', 2)
@@ -21,7 +21,7 @@ Variant_effects[c('initial', 'changed')] <- str_split_fixed(Variant_effects$X..7
 ## we only need thee amino acid columns and ID column for further analysis. 
 
 Variant_effects <- Variant_effects %>%
-  select(1, initial, changed)
+  select(1, initial, changed, MODIFIER)
 
 
 ## split the first column into chromosome and location in the chromosome.
@@ -85,10 +85,6 @@ Variant_effects <- Variant_effects %>%
 
 ##pull out just the Grantham score
 Variant_effects$Grantham <- pull(Variant_effects$grantham[,3])
-## when there is a loss of stop change in the code assign it a score of 250 as this should be extremely deleterious
-Variant_effects <- Variant_effects %>%
-  mutate(Grantham = case_when(is.na(Grantham) ~ 250,
-         TRUE ~ Grantham))
 
 
 
@@ -109,60 +105,30 @@ Variant_effects <- Variant_effects %>%
 
 Variant_effect_simple <- Variant_effects %>%
   select(Chromosome, Location, Grantham)
+
+### ideantify columns iwth high impact
+
+Variant_effect_simple$Grantham <- as.numeric(Variant_effect_simple$Grantham)
+
+Variant_effect_simple$Grantham <-replace_na(Variant_effect_simple$Grantham, "HIGH")
+
+
+
 ##make numeric for joining
 
 Variant_effect_simple$Location <- as.numeric(Variant_effect_simple$Location)
+
 
 
 ## addd the grantham score for each variant location we can in the large allele frequency change dataset. 
 Grantham_alleles <- left_join(Full_filtered_data, Variant_effect_simple, by = c("Chromosome", "Location"))
 
 
-## remove all loactions we dont have grantham score data for.
-Grantham_alleles <- Grantham_alleles  %>%
-  filter(!is.na(Grantham))
+## Write the final fille with all data for making summaries
+write.delim(Grantham_alleles, "Grantham_GERP_Full.delim")
 
 
 
-# Calculate a load score for all populations
-
-Grantham_alleles <- Grantham_alleles %>%
-  ##Take only informative sites
-  ## Create a value for the frequency of the minor allele times the Grantham score.
-  ## The higher the frequency and Grantham the higher this measure of genetic load
-  #This is calculated for each pooled sample
-  mutate(Gran_Start = ((1-`X0_NA`) * Grantham*Global), Gran_core = ((1-`X8_C`) * Grantham*Global), 
-         Gran_edge = ((1-`X8_E`) * Grantham*Global), Gran_end = ((1-`X8_NA`) * Grantham* Global))
-
-
-############################## test diffierent filtering############################
-
-
-##################################################################################
-
-## create a genetic load from allele frequencies combined with grantham scores. 
-##Summing assumes additive effect of all the deleterious change
-Grantham_loads <- Grantham_alleles %>%
-  group_by(Landscape) %>%
-  summarise(Start_load = (sum(Gran_Start, na.rm = TRUE)),
-            Change_edge = (sum(Gran_edge, na.rm = TRUE)),
-            Change_core = (sum(Gran_core, na.rm = TRUE)),
-            `NA` = (sum(Gran_end, na.rm = TRUE))) %>%
-  filter(Change_edge != 0) %>%
-  select(Landscape, Change_edge, Change_core)
-
-
-
-
-## change the names so it can be combined into the final summary. 
-
-Grantham_loads <- Grantham_loads %>%
-  pivot_longer(cols=c('Change_edge', 'Change_core'),
-                           names_to='treatment',
-                           values_to='Grantham_load') 
-  
-
-write.delim(Grantham_loads, "Grantham_loads.delim")
 
 
 
