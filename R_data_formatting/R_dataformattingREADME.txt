@@ -1,3 +1,20 @@
+First run all poolseq to allelefrq 
+
+Files found in the Pooledseq_to_allelefrq folder
+Steps described in the alnpoolsREADME
+
+Second run all gerp scripts
+
+Files found in the GERP_scripts folder
+Steps described in the  GERP_Pipeline_README
+
+
+
+Finally run R data formatting pipeline described below
+
+Files found in the R_data_formatting folder
+
+
 Pipeline to combine fitness, allele frequency, and GERP data, and Grantham score data for final analyses.
 
 
@@ -12,6 +29,9 @@ Format_beetle_fitness.R
 Variant_effects.R
 formatting_final_summary.R
 final_analyses.R
+
+
+
 
 ### Allele frequencies ###
 
