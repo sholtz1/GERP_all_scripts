@@ -109,7 +109,7 @@ Full_data_squared_sum <- Full_data_squared %>%
 
 GERP_load <- Full_filtered_data %>%
   ##Take only informative sites
-  filter(Max_RS > 0) %>%
+  filter(RS > 2) %>%
   ## remove sites identified in our coding regions
   filter(is.na(Grantham)) %>%
   ## Create a value for the frequency of the minor allele times the RS score.
@@ -150,7 +150,7 @@ pop_genetic_loads_long <- pop_genetic_loads_long %>%
 ######################################### GERP load with coding sites ##################################
 GERP_load_full <- Full_filtered_data %>%
   ##Take only informative sites
-  filter(Max_RS > 0) %>%
+  filter(RS > 2) %>%
   ## remove sites identified in our coding regions
   ## Create a value for the frequency of the minor allele times the RS score.
   ## The higher the frequency and RS the higher this measure of genetic load
