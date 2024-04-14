@@ -64,6 +64,8 @@ allele_fold_change_squared <- allele_fold_long_fitness %>%
   summarize(change_0fold_squared = mean(change_squared , na.rm =TRUE), Fitness = mean(Fitness))
 
 
+
+
 ##Look at major allele frq for 0 fold sites
 ## this assumes that 0 fold sites are under tabilizing selection 
 #and higher major allele frq should be less deleterious
@@ -99,6 +101,39 @@ Full_data_squared <- Full_data_long %>%
 Full_data_squared_sum <- Full_data_squared %>%
   group_by(Landscape, treatment) %>%
   summarise(change_squared = (mean(change_squared, na.rm = TRUE)))
+
+
+
+## look absolute allele frequency chagnge away from the global total
+Full_data_global <- Full_data_long %>%
+  mutate(global_change = case_when(
+    treatment == "Change_core" ~ abs(Global - X8_C),
+    treatment == "Change_edge" ~ abs(Global - X8_E),
+  ))
+
+## summarize by landscape and treatment to get final summary stats
+Full_data_global_sum <- Full_data_global %>%
+  group_by(Landscape, treatment) %>%
+  summarise(change_global = (mean(global_change, na.rm = TRUE)))
+
+
+
+
+
+##### look at grantham scores assuming stabablizing selection
+
+Grantham_global <- Full_data_long %>%
+  filter(!is.na(Grantham)) %>%
+  mutate(Gran_global_change = case_when(
+    treatment == "Change_core" ~ abs(Global - X8_C)*Grantham,
+    treatment == "Change_edge" ~ abs(Global - X8_E)*Grantham,
+  ))
+
+
+## summarize by landscape and treatment to get final summary stats
+Grantham_global_sum <- Grantham_global %>%
+  group_by(Landscape, treatment) %>%
+  summarise(Grantham_global = (mean(Gran_global_change, na.rm = TRUE)))
 
 
 ################## GERP genetic load without coding sites ########################################
@@ -260,7 +295,7 @@ Grantham_averages <- Grantham_averages %>%
 
 High_effect_alleles <- Full_filtered_data  %>%
   filter(!is.na(Grantham)) %>%
-  filter(Grantham == "HIGH")
+  filter(IMPACT == "HIGH")
 
 High_effect_alleles <- High_effect_alleles %>%
   group_by(Landscape) %>%
@@ -274,7 +309,7 @@ High_effect_alleles <- High_effect_alleles %>%
 ############# Average high impact, low frq sites may not be imporant to fitness ###################
 High_effect_averages <- Full_filtered_data  %>%
   filter(!is.na(Grantham)) %>%
-  filter(Grantham == "HIGH")
+  filter(IMPACT == "HIGH")
 
 High_effect_averages <- High_effect_averages %>%
   group_by(Landscape) %>%
@@ -317,6 +352,10 @@ Final_summary_2 <- left_join(Final_summary_2, High_effect_alleles, by = c("Lands
 Final_summary_2 <- left_join(Final_summary_2, High_effect_averages, by = c("Landscape", "treatment"))
 
 Final_summary_2 <- left_join(Final_summary_2, Grantham_averages, by = c("Landscape", "treatment"))
+
+Final_summary_2 <- left_join(Final_summary_2, Full_data_global_sum, by = c("Landscape", "treatment"))
+
+Final_summary_2 <- left_join(Final_summary_2, Grantham_global_sum, by = c("Landscape", "treatment"))
 
 write_delim(Final_summary_2 , "Final_summary.delim")
 

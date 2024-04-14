@@ -3,29 +3,31 @@ library(tidyverse)
 library(caroline)
 library(stringr)
 library(grantham)
+library(tidyverse)
 ###### finding all annotated SNP variants available in our data
 
 
 ## load in all data to calculate gramtham load scores for each population
 Full_filtered_data <- read.table("Full_data_bigtree.delim", header = TRUE)
-Variant_effects <- read.table("GxK1C4chiGUhHJZZ.txt", header = TRUE, sep = "\t")
+Variant_effects <- read.table("Variant_effects.txt", header = TRUE, sep = "\t")
 
 ## filter for rows with an amino acid changes, other information is likely 
 Variant_effects <- Variant_effects %>%
-  filter(X..7 != "-") %>%
-  filter(intron_variant == "missense_variant" | MODIFIER == "HIGH")
+  filter(Consequence == "missense_variant" | IMPACT == "HIGH" | IMPACT == "LOW")
+
+
 
 ## split the amino acid columns into an original and variant amino acids.
-Variant_effects[c('initial', 'changed')] <- str_split_fixed(Variant_effects$X..7, '/', 2)
+Variant_effects[c('initial', 'changed')] <- str_split_fixed(Variant_effects$Amino_acids, '/', 2)
 
 ## we only need thee amino acid columns and ID column for further analysis. 
 
 Variant_effects <- Variant_effects %>%
-  select(1, initial, changed, MODIFIER)
+  select(1, initial, changed, IMPACT)
 
 
 ## split the first column into chromosome and location in the chromosome.
-Variant_effects[c('chromosome', 'Location', 'allele_change')] <- str_split_fixed(Variant_effects$LG10_54578_A.C, '_', 3)
+Variant_effects[c('chromosome', 'Location', 'allele_change')] <- str_split_fixed(Variant_effects$Uploaded_variation, '_', 3)
 
 
 ## change to three letter codes for amino acids
@@ -101,22 +103,25 @@ Variant_effects <- Variant_effects %>%
                                 chromosome ==  "LG9" ~ "NC_007424.3" ,
                                 chromosome ==  "LG10" ~ "NC_007425.3" ))
 
-## shoose only the colums we nned for calculating a Grantham load
+
+
+## choose only the column we need for calculating a Grantham load
 
 Variant_effect_simple <- Variant_effects %>%
-  select(Chromosome, Location, Grantham)
+  select(Chromosome, Location, Grantham, IMPACT)
 
-### ideantify columns iwth high impact
+
+
+##Make numberic
 
 Variant_effect_simple$Grantham <- as.numeric(Variant_effect_simple$Grantham)
-
-Variant_effect_simple$Grantham <-replace_na(Variant_effect_simple$Grantham, "HIGH")
-
 
 
 ##make numeric for joining
 
 Variant_effect_simple$Location <- as.numeric(Variant_effect_simple$Location)
+
+Variant_effect_simple <- unique(Variant_effect_simple)
 
 
 
