@@ -222,6 +222,45 @@ pop_genetic_loads_long_full <- pop_genetic_loads_long_full %>%
   mutate(treatment = case_when(treatment == "edge" ~ "Change_edge",
                                treatment == "core" ~ "Change_core"))
 
+######################################### GERP load with coding sites filtered for meduim RS ##################################
+GERP_load_full_filtered <- Full_filtered_data %>%
+  ##Take only informative sites
+  filter(RS > 2 & RS <6) %>%
+  ## remove sites identified in our coding regions
+  ## Create a value for the frequency of the minor allele times the RS score.
+  ## The higher the frequency and RS the higher this measure of genetic load
+  #This is calculated for each pooled sample
+  mutate(Start = ((1-`X0_NA`) * RS), END_core = ((1-`X8_C`) * RS), 
+         END_edge = ((1-`X8_E`) * RS), END_Stat = ((1-`X8_NA`) * RS))
+
+## Modified  method from Valk et al 2019 making a genetic load by multiplying allele frequency 
+## by gerp score to get an estimate of load.
+pop_genetic_loads_full_filtered <- GERP_load_full_filtered %>%
+  group_by(Landscape) %>%
+  ##summing these assumes an additive effect of all of the deleterious change at GERP sites
+  summarise(Start_load = (sum(Start, na.rm = TRUE)),
+            edge = (sum(END_edge, na.rm = TRUE)),
+            core = (sum(END_core, na.rm = TRUE)),
+            `NA` = (sum(END_Stat, na.rm = TRUE)))
+
+
+
+
+## Make is so that all values are in the same column this allows for easier comparison
+pop_genetic_loads_long_full_filtered <- pop_genetic_loads_full_filtered %>%
+  pivot_longer(cols =c("Start_load", "edge", "core", "NA"),
+               names_to = "Location" , values_to = "Load_full_filtered")
+## filter for just core and edge loads we will use in our final analyses. 
+pop_genetic_loads_long_full_filtered <- pop_genetic_loads_long_full_filtered %>%
+  filter(Load_full_filtered != 0) %>%
+  filter(Location != "Start_load" & Location != "NA")
+
+colnames(pop_genetic_loads_long_full_filtered)[2] <- "treatment"
+
+## change names so that it can be joind into the final summary
+pop_genetic_loads_long_full_filtered <- pop_genetic_loads_long_full_filtered %>%
+  mutate(treatment = case_when(treatment == "edge" ~ "Change_edge",
+                               treatment == "core" ~ "Change_core"))
 
 
 ######################################### Format grantam score data ########################
@@ -356,6 +395,8 @@ Final_summary_2 <- left_join(Final_summary_2, Grantham_averages, by = c("Landsca
 Final_summary_2 <- left_join(Final_summary_2, Full_data_global_sum, by = c("Landscape", "treatment"))
 
 Final_summary_2 <- left_join(Final_summary_2, Grantham_global_sum, by = c("Landscape", "treatment"))
+
+Final_summary_2 <- left_join(Final_summary_2, pop_genetic_loads_long_full_filtered, by = c("Landscape", "treatment"))
 
 write_delim(Final_summary_2 , "Final_summary.delim")
 
