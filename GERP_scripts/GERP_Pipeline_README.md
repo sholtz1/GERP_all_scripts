@@ -373,3 +373,7 @@ mv "$gerp".elems.bed_tmp "$gerp".elems.bed
 ```
 
 ###Final output is a .rates.bed file and a .rates.elems file for each chromosome that can then be combined with other files. In this case we combine them with allele frequency and fitness files from the tribolium range expansion experiemnt. 
+
+Next to get the account for gaps in the rates.bed file we use the python script gaps_gerps.py on each chromosome's rates.bed file to make sure our RS scores match the correct loci in the tribolium genome. The final output from this is a gapped.rates file for each chromosome.
+ 
+
