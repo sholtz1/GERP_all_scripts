@@ -135,7 +135,7 @@ Pairwise_GERP_load <-Pairwise_summary %>%
   geom_histogram(bins = 10, fill = "black")+
   theme_classic() +My_Theme +
   xlab("GERP load")+
-  ylab("")+
+  ylab("Count")+
   #coord_cartesian(xlim=c(-2,4), ylim = c(0,5))+
   geom_text(aes(x = Inf, y = Inf, label = paste("p =", signif(Load_full_T$p.value, 3))),
             hjust = 1, vjust = 1, size = 5) +
@@ -174,7 +174,7 @@ Pairwise_Diversity <-Pairwise_summary %>%
   geom_histogram(bins = 15 , fill = "springgreen3")+
   theme_classic() +My_Theme +
   xlab("Diversity")+
-  ylab("")+
+  ylab("Count")+
   #coord_cartesian(xlim=c(-2,4), ylim = c(0,5))+
   geom_text(aes(x = Inf, y = Inf, label = paste("p =", signif(Diversity_T$p.value, 3))),
             hjust = 1, vjust = 1, size = 5) +
