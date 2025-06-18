@@ -365,7 +365,7 @@ preds <- function(fitobj){
 }
 
 # Now run the bootstrap analysis
-bootpreds <- bootMer(GERP_GLMM_fixed, preds, nsim=50)
+bootpreds <- bootMer(GERP_GLMM_fixed, preds, nsim=5000)
 
 # Calculate the CIs
 conf_ints <- vector(mode='list', length=6)  # 6 combinations of fixed effects
@@ -395,9 +395,9 @@ GERP_fixed_plot <- ggplot(GERP_results_fixed, aes(x=Bin, y=mean, color = Locatio
   geom_errorbar(aes(ymin=lower, ymax=upper), width=0.5, position=position_dodge(0.9)) +
   theme_classic() + My_Theme +
   xlab("GERP Score")+  theme(legend.position = "none") +
-  ylab("Number of Fixed sites") + scale_color_manual(values=c("orangered4", "#56B4E9"))
+  ylab("Number of Fixed Sites") + scale_color_manual(values=c("orangered4", "#56B4E9"))
 
-GERP_fixed_plot
+#GERP_fixed_plot
 
 # Now save the plot as a pdf of the desired dimensions for a publication quality figure
 #pdf(file = "GERP_fixed_plot.pdf", width = 5, height = 3, onefile = FALSE, paper = "special")
@@ -461,7 +461,7 @@ pairs(em_vep, by = "VEP_bin")
 
 # Now use the same process to generate confidence intervals
 newdat <- expand.grid(VEP_bin = c("Low", "Moderate", "High"), Location = c("Core", "Edge"))
-bootpreds <- bootMer(VEP_GLMM_fixed, preds, nsim=50)
+bootpreds <- bootMer(VEP_GLMM_fixed, preds, nsim=5000)
 conf_ints <- vector(mode='list', length=6)  # 6 combinations of fixed effects
 for(i in 1:6){
   conf_ints[[i]] <- boot.ci(bootpreds, type='perc', index=i)
@@ -488,7 +488,7 @@ VEP_fixed_plot <- ggplot(VEP_results_fixed, aes(x=VEP_bin, y=mean, color = Locat
   xlab("VEP Category")+
   ylab("") + scale_color_manual(values=c("orangered4", "#56B4E9"))
 
-VEP_fixed_plot 
+#VEP_fixed_plot 
 ##### Combine fixed plots into 1
 
 
@@ -550,7 +550,7 @@ preds <- function(fitobj){
 }
 
 # Now run the bootstrap analysis
-bootpreds <- bootMer(GERP_bins_model, preds, nsim=50)
+bootpreds <- bootMer(GERP_bins_model, preds, nsim=5000)
 
 # Calculate the CIs
 conf_ints <- vector(mode='list', length=6)  # 6 combinations of fixed effects
@@ -610,7 +610,7 @@ pairs(em_vep_average, by = "VEP_bin")
 
 # Now use the same process to generate confidence intervals
 newdat <- expand.grid(VEP_bin = c("Low", "Moderate", "High"), Location = c("Core", "Edge"))
-bootpreds <- bootMer(VEP_bins_model, preds, nsim=50)
+bootpreds <- bootMer(VEP_bins_model, preds, nsim=5000)
 conf_ints <- vector(mode='list', length=6)  # 6 combinations of fixed effects
 for(i in 1:6){
   conf_ints[[i]] <- boot.ci(bootpreds, type='perc', index=i)
