@@ -9,7 +9,7 @@ beetle_growth_census <- beetle_growth_census %>%
 
 
 
-##pipeline to get the fitness from the weights, Change to use weights when we actually have them
+##pipeline to get the fitness from the weights,get beetle count estimates from the weights
 beetle_growth_census <- beetle_growth_census %>%
   mutate(weight_count = total_weight/(weight_50/50))
 
@@ -60,7 +60,7 @@ beetle_fitness <- beetle_fitness %>%
                                TRUE ~ Location))
 
 
-## Only keep 1 row per landscape for the shuffeled treatment since this is only 1 datapoint
+## Only keep 1 row per landscape for the shuffled treatment since this is only 1 datapoint
 beetle_fitness <- distinct(beetle_fitness)
 
 ## keep only the necessary columns

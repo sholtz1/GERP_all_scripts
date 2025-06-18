@@ -17,22 +17,33 @@ Allele_frequencies <- read.table("Allele_frequencies.delim", header = TRUE, sep 
 Base_pairs <-Allele_frequencies %>%
   select(8:13)
 
+Base_names <- names(Allele_frequencies)[8:13]
+
 ##This gets the total number or base pairs present at a specific location.
 Allele_frequencies$primary <- rowSums(Base_pairs)
 
 ##makes a column to tell how many alleles are present for that patch
-Allele_frequencies$count <- apply(Base_pairs, 1, function(x) length(which(x=="0")))
+Allele_frequencies$num_alleles <- apply(Base_pairs, 1, function(x) length(which(x !="0")))
 
 
-
-### This section finds the base pair count of the minor SNP
+# Replace 0 counts with NA and then identify the frequency and identity of the dominant allele 
+# at each location
+# NOTE: This is not the true major allele as we calculate that across all populations later
 Base_pairs[Base_pairs == 0] <- NA
 
-f1 <- function(x){
-  min(x, na.rm = TRUE)
-}
 
-Allele_frequencies$alternate <- apply(X=Base_pairs, MARGIN=1, FUN=f1)
+# Now create two convenience functions to identify the count and identity of the dominant
+# allele, then use the apply function to use them across the full dataset
+f1 <- function(x){
+  max_count <- max(x, na.rm = TRUE)
+  return(max_count)
+}
+f2 <- function(x){
+  max_allele <- which.max(x)
+  return(Base_names[max_allele[1]])
+}
+Allele_frequencies$max_count <- apply(X=Base_pairs, MARGIN=1, FUN=f1)
+Allele_frequencies$max_allele <- apply(X=Base_pairs, MARGIN=1, FUN=f2)
 
 
 ##Remove unnecessary large object
@@ -40,9 +51,9 @@ Allele_frequencies$alternate <- apply(X=Base_pairs, MARGIN=1, FUN=f1)
 rm("Base_pairs")
 
 print("Checkpoint 1")
-##Remove sites with more than two alleles
+##Remove sites with more than two alleles as we cant deal with polyallelic sites. 
 Allele_frequencies <- Allele_frequencies %>%
-  filter(count %in% c(4, 5))
+  filter(num_alleles <= 2)
 
 
 ##Make numeric and
@@ -50,82 +61,28 @@ Allele_frequencies <- Allele_frequencies %>%
 Allele_frequencies$primary <- as.numeric(Allele_frequencies$primary)
 Allele_frequencies$alternate <- as.numeric(Allele_frequencies$alternate)
 
-##Remove columns that only have 1 allele present.
 
-##This makes a dataframe of every location that is fixed within a landscape
-## We want to remove these from the analysis since fixed sites dont tell us anything
-One_allele <- Allele_frequencies %>%
+# Now filter to remove any sites that are fixed for the same allele across
+# all populations. Importantly, this will still keep any sites that are fixed,
+# but fixed for different alleles in different populations.
+
+
+IncludedSites <- Allele_frequencies %>%
   group_by(Chromosome, Location, Landscape) %>%
-  summarize(Allele_diff = sum(primary - alternate)) %>%
-  filter(Allele_diff == 0)
-
-## Add code to make a DF of locations that are fixed at with two different bases
-
-##Start with only alleles that are fixed somewhere
-Fixed_only <- Allele_frequencies %>%
-  filter(primary == alternate)
-
-## Next we need to get the BP of each allele into a new column for each landscape
-#and generation
-
-## Make new row
-Fixed_only$Fixed <- rep(NA, nrow(Fixed_only))
-
-## Create DF so we only look at BP columns
-Fixed_only_bases <- Fixed_only %>%
-  ungroup() %>%
-  select(8:13)
-
-
-
-
-## Code to set up parallel processing for the loop
-no_cores <- 48
-# Setup cluster
-clust <- makeCluster(no_cores) 
-
-print(no_cores)
-# export the objects you need for your calculations from your environment to each node's environment
-clusterExport(clust, varlist=c("Fixed_only_bases", "Fixed_only"))
-
-
-
-## Get the allele BP into a new column for all fixed sites
-
-parellel_allele_BP <- do.call(rbind, clusterApplyLB(clust, 1:nrow(Fixed_only), function(i){
-  
-  
-    temp <- names(Fixed_only_bases)[which(Fixed_only_bases[i,] == Fixed_only$alternate[i])]
-    
-  return(data.frame(Fixed = temp))  
-}))
-
-
-Fixed_only$Fixed <- parellel_allele_BP$Fixed
-
-rm(parellel_allele_BP)
-
-
-## This code finds locations and landscapes where two different alleles are fixed.
-Fixed_only_sum <- Fixed_only %>%
-  group_by(Chromosome, Location, Landscape) %>%
-  summarise(diff_BP = length(unique(Fixed))) %>%
-  filter(diff_BP > 1)
-  
-## filter our data removing sites identified above use paste to identify 
-#each site uniquely but don't remove sites with diff alleles fixed.
+  summarize(count_diff = sum(total_reads - max_count), allele_diff = length(unique(max_allele))) %>%
+  filter((allele_diff > 1) | (count_diff) > 0)
 
 Allele_frequencies <- Allele_frequencies %>%
-  filter(!(paste(Chromosome, Location, Landscape) %in% 
-             paste(One_allele$Chromosome,One_allele$Location,One_allele$Landscape)) |
-           (paste(Chromosome, Location, Landscape) %in% 
-              paste(Fixed_only_sum$Chromosome,Fixed_only_sum$Location,Fixed_only_sum$Landscape))
-         )
+  filter(paste(Chromosome, Location, Landscape) %in% 
+           paste(IncludedSites$Chromosome,IncludedSites$Location,IncludedSites$Landscape))
+
+
 
 print("Checkpoint 2")
 
-## We need to get the alternate allele nucleotide to keep it constant for each
-##Landscape
+# Now we need to identify the major allele for each genomic location by comparing
+# across all our populations. This protects against erroneous identification of 
+# major alleles due to stochasticity in the pooling and sequencing process.
 
 
 ##create a new dataframe with the total number of each base pair for each landscape/location 
@@ -135,85 +92,26 @@ FRQ_test <- Allele_frequencies %>%
             C = sum(C), del = sum(del))
 
 
-
-##Make sure all base pair columns are numeric to that we can use the min function
-FRQ_test$A <- as.numeric(FRQ_test$A)
-FRQ_test$`T` <- as.numeric(FRQ_test$`T`)
-FRQ_test$C <- as.numeric(FRQ_test$C)
-FRQ_test$G <- as.numeric(FRQ_test$G)
-FRQ_test$del <- as.numeric(FRQ_test$del)
-
-## Make max function with rm.na
-f2 <- function(x){
-  max(x, na.rm = TRUE)
+# Use a similar approach to what we did before to generate the count and identity
+# of the higher frequency allele for genomic location across all landscapes
+Base_names <- names(FRQ_test)[3:7]
+f3 <- function(x){
+  max_count <- max(x, na.rm = TRUE)
+  return(max_count)
 }
+f4 <- function(x){
+  max_allele <- which.max(x)
+  return(Base_names[max_allele[1]])
+}
+FRQ_test$Major_count <- apply(FRQ_test[,3:7], 1, FUN = f3)
+FRQ_test$Major_allele <- apply(FRQ_test[,3:7], 1, FUN = f4)
+
+# Get the global allele frequency of the major allele.
+# Higher global major allele frequency could mean changes away from it are
+# potentially more deleterious.
+FRQ_test$Global_tot <- rowSums(FRQ_test[,3:7]) 
 
 
-##Make a new column with the maximum number of alleles for that row
-FRQ_test$Major <-apply(FRQ_test[,3:7],1,FUN=f2)
-FRQ_test$Major <-as.numeric((FRQ_test$Major))
-
-##Make a new column with the minimum number of alleles for each row
-FRQ_test[FRQ_test == 0] <- NA
-FRQ_test$minor <-apply(FRQ_test[,3:7],1,FUN=f1)
-FRQ_test$minor <-as.numeric((FRQ_test$minor))
-
-
-
-##Create a new DF that only has nuclotide information.
-Base_only <- FRQ_test %>%
-  ungroup() %>%
-  select(3:7)
-
-Base_only[is.na(Base_only)] <- 0
-
-
-
-## Create a new row to put Minor allele BP letter into
-FRQ_test$New <- rep(NA, nrow(FRQ_test))
-
-## Get the major allele BP into a new column
-
-# export the objects you need for your calculations from your environment to each node's environment
-clusterExport(clust, varlist=c("FRQ_test", "Base_only"))
-
-
-parellel_major_BP <- do.call(rbind, clusterApplyLB(clust, 1:nrow(FRQ_test), function(i){
-  
-  
-  bases <- names(Base_only)[which(Base_only[i,] == FRQ_test$Major[i])]
-  bases2 <- bases[1]
-  return(data.frame(Which_base = bases2)) 
-}))
-
-
-FRQ_test$New <- parellel_major_BP$Which_base
-
-
-
-########################################################################################
-#########put the latter for the minor allele in a new column
-
-
-## Create a new row to put Minor allele BP letter into
-FRQ_test$alt <- rep(NA, nrow(FRQ_test))
-
-## Get the major allele BP into a new column
-
-# export the objects you need for your calculations from your environment to each node's environment
-clusterExport(clust, varlist=c("FRQ_test", "Base_only"))
-
-
-parellel_minor_BP <- do.call(rbind, clusterApplyLB(clust, 1:nrow(FRQ_test), function(i){
-  
-  
-  bases <- names(Base_only)[which(Base_only[i,] == FRQ_test$minor[i])]
-  bases2 <- bases[1]
-  return(data.frame(Which_base = bases2))  
-}))
-
-
-FRQ_test$alt <- parellel_minor_BP$Which_base
 
 ############ this section is where the code diverges form the format allele frequency code#################
 
